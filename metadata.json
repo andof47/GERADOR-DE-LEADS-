@@ -1,0 +1,7 @@
+{
+  "name": "Gerador de Leads de Componentes Eletrônicos",
+  "description": "Um aplicativo web inteligente que utiliza a API Gemini para identificar, qualificar e criar estratégias de contato para potenciais clientes no setor de componentes eletrônicos.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
