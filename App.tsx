@@ -13,6 +13,7 @@ import Settings from './components/Settings';
 const App: React.FC = () => {
   const [productCriteria, setProductCriteria] = useState<string>('');
   const [locationCriteria, setLocationCriteria] = useState<string>('');
+  const [companyName, setCompanyName] = useState<string>('');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +45,14 @@ const App: React.FC = () => {
       if (savedLeadsRaw) {
         const savedLeads = JSON.parse(savedLeadsRaw);
         if (Array.isArray(savedLeads)) {
-          setLeads(savedLeads);
+          // Data sanitization for backward compatibility and robustness
+          const sanitizedLeads = savedLeads.map(lead => ({
+            ...lead,
+            keyContacts: Array.isArray(lead.keyContacts) ? lead.keyContacts : (typeof lead.keyContacts === 'string' && lead.keyContacts.length > 0 ? [lead.keyContacts] : []),
+            notes: Array.isArray(lead.notes) ? lead.notes : [],
+            tasks: Array.isArray(lead.tasks) ? lead.tasks : [],
+          }));
+          setLeads(sanitizedLeads);
         }
       }
     } catch (e) {
@@ -57,8 +65,8 @@ const App: React.FC = () => {
   }, [leads]);
 
   const handleGenerateLeads = async () => {
-    if (!productCriteria.trim() || !locationCriteria.trim()) {
-      setError('Por favor, preencha o setor e a localização para a busca.');
+    if (!companyName.trim() && (!productCriteria.trim() || !locationCriteria.trim())) {
+      setError('Por favor, preencha o nome da empresa OU o setor e a localização.');
       return;
     }
 
@@ -89,7 +97,7 @@ const App: React.FC = () => {
           // Continua sem as coordenadas, não é um erro fatal.
       }
       
-      const newLeads = await generateLeads(productCriteria, locationCriteria, userCoords);
+      const newLeads = await generateLeads(productCriteria, locationCriteria, companyName, userCoords);
       setLeads(prevLeads => {
         // 1. Manter APENAS os leads que já foram favoritados. Os outros da busca anterior são descartados.
         const favoritedLeads = prevLeads.filter(l => l.isSaved);
@@ -233,9 +241,7 @@ const App: React.FC = () => {
   };
 
   const handleClearAllLeads = () => {
-    if(window.confirm("Você tem certeza que deseja apagar TODOS os leads? Esta ação não pode ser desfeita.")){
-        setLeads([]);
-    }
+    setLeads([]);
   }
 
   const renderActiveView = () => {
@@ -269,9 +275,18 @@ const App: React.FC = () => {
           </>
         );
       case 'list':
-        return <OrganizedList leads={leads.filter(l => !l.isSaved)} />;
+        return (
+          <>
+            <FilterBar filters={filters} setFilters={setFilters} allLeads={leads.filter(l => !l.isSaved)} />
+            <OrganizedList leads={filteredLeads} />
+          </>
+        );
       case 'settings':
-        return <Settings onClearAllLeads={handleClearAllLeads} />;
+        return <Settings 
+                    onClearAllLeads={handleClearAllLeads} 
+                    leads={leads} 
+                    onRestoreLeads={setLeads}
+                />;
       default:
         return null;
     }
@@ -284,6 +299,7 @@ const App: React.FC = () => {
       <main className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md max-w-4xl mx-auto w-full">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Gerar Novos Leads</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Busque por setor e localização para obter uma lista de empresas.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -292,14 +308,40 @@ const App: React.FC = () => {
               onChange={(e) => setProductCriteria(e.target.value)}
               placeholder="Produto ou Setor do Cliente (ex: automação)"
             />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
+                value={locationCriteria}
+                onChange={(e) => setLocationCriteria(e.target.value)}
+                placeholder="Localização (ex: Campinas, SP)"
+              />
+              <button 
+                onClick={() => setLocationCriteria('Brasil')}
+                className="flex-shrink-0 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-semibold py-2 px-3 rounded-md text-sm"
+                title="Buscar em todo o território nacional"
+              >
+                Brasil
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex items-center my-4">
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+            <span className="flex-shrink mx-4 text-gray-500 dark:text-gray-400 text-sm">OU</span>
+            <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          
+          <div>
             <input
               type="text"
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500"
-              value={locationCriteria}
-              onChange={(e) => setLocationCriteria(e.target.value)}
-              placeholder="Localização (ex: Campinas, SP)"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              placeholder="Nome da Empresa (ex: Multilaser)"
             />
           </div>
+
           <button
             onClick={handleGenerateLeads}
             disabled={isLoading}

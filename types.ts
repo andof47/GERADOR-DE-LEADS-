@@ -27,7 +27,7 @@ export interface Lead {
   summary: string;
   reasonWhy: string;
   potentialNeeds: string[];
-  keyContacts: string;
+  keyContacts: string[];
   status: LeadStatus;
   isSaved?: boolean;
   address?: string;

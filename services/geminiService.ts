@@ -7,6 +7,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 export const generateLeads = async (
   productCriteria: string,
   locationCriteria: string,
+  companyName: string,
   coordinates?: { latitude: number; longitude: number }
 ): Promise<Lead[]> => {
   try {
@@ -19,9 +20,25 @@ export const generateLeads = async (
         };
     }
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-pro',
-      contents: `Com base na localização do usuário (se fornecida) e na região de "${locationCriteria}", use o Google Maps e a Pesquisa Google para gerar uma lista de até 50 empresas brasileiras que atuam no setor de "${productCriteria}". Foque em encontrar empresas de pequeno e médio porte, além das grandes. Investigue também o LinkedIn para encontrar contatos chave.
+    const mainQuery = companyName.trim()
+      ? `Foque sua busca na empresa específica: "${companyName.trim()}". Investigue-a profundamente para encontrar todos os detalhes solicitados.`
+      : `Gere uma lista de até 50 empresas brasileiras que atuam no setor de "${productCriteria}".`;
+
+    const locationQuery = locationCriteria.trim()
+      ? `A busca deve ser focada na região de "${locationCriteria}".`
+      : 'A busca deve ser focada no Brasil.';
+
+    const prompt = `
+${mainQuery}
+${locationQuery}
+Se a busca for por uma empresa específica, pode ignorar o limite de 50 e focar em retornar 1 resultado completo.
+
+Para enriquecer a busca e encontrar os melhores leads, aplique as seguintes estratégias avançadas:
+1.  **Fontes Especializadas:** Além das buscas gerais, investigue portais da indústria como o da ABINEE (Associação Brasileira da Indústria Elétrica e Eletrônica) para encontrar empresas associadas e validadas no setor.
+2.  **Sinais de Compra (Eventos e Notícias):** Priorize empresas que foram mencionadas em notícias recentes sobre lançamentos de produtos, investimentos, ou que participaram de feiras do setor como a FIEE. Isso indica que são 'leads quentes'.
+3.  **Sinais de Compra (Vagas de Emprego):** Procure por empresas que estão contratando para vagas como 'Engenheiro de Hardware', 'Desenvolvedor de Firmware' ou 'Comprador Técnico'. Isso é um forte indicador de que estão em um ciclo de desenvolvimento e compra de componentes.
+
+Foque em encontrar empresas de pequeno e médio porte, além das grandes (a não ser que uma empresa grande específica seja solicitada). Para cada empresa encontrada, investigue também o LinkedIn para encontrar contatos chave.
 
 A resposta DEVE ser um array JSON válido, e nada mais. Não inclua texto explicativo antes ou depois do JSON.
 
@@ -34,9 +51,13 @@ Para cada empresa, forneça os seguintes campos no objeto JSON:
 - email: Endereço de e-mail geral, se disponível.
 - website: URL do site oficial, se disponível.
 - summary: Um breve resumo sobre a empresa e seus produtos.
-- reasonWhy: Uma análise concisa do motivo pelo qual esta empresa é um bom lead.
+- reasonWhy: Uma análise concisa do motivo pelo qual esta empresa é um bom lead, mencionando qual das estratégias de busca a encontrou, se aplicável.
 - potentialNeeds: Uma lista de tipos específicos de componentes eletrônicos que a empresa provavelmente precisa.
-- keyContacts: Departamentos ou cargos chave para contato (ex: Engenharia, Compras).`,
+- keyContacts: Um array JSON de strings com departamentos ou cargos chave para contato (ex: ["Engenharia", "Compras"]).`;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-pro',
+      contents: prompt,
       config: {
         systemInstruction: `Você é um especialista em geração de leads B2B para a indústria de componentes eletrônicos no Brasil. Sua tarefa é usar as ferramentas de busca fornecidas para identificar e formatar informações detalhadas sobre empresas que seriam excelentes clientes. Forneça respostas em português do Brasil, estritamente no formato JSON solicitado.`,
         tools: tools,
@@ -65,7 +86,7 @@ Para cada empresa, forneça os seguintes campos no objeto JSON:
         }
     }
 
-    const leadsData: Omit<Lead, 'id' | 'status'>[] = JSON.parse(jsonString);
+    const leadsData: (Omit<Lead, 'id' | 'status' | 'isSaved' | 'keyContacts'> & { keyContacts: string | string[] })[] = JSON.parse(jsonString);
 
     if (!Array.isArray(leadsData)) {
       throw new Error("A API não retornou uma lista de leads válida.");
@@ -73,6 +94,9 @@ Para cada empresa, forneça os seguintes campos no objeto JSON:
 
     return leadsData.map(leadData => ({
       ...leadData,
+      keyContacts: Array.isArray(leadData.keyContacts) 
+          ? leadData.keyContacts 
+          : (typeof leadData.keyContacts === 'string' && leadData.keyContacts.length > 0 ? [leadData.keyContacts] : []),
       id: `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       status: LeadStatus.New,
       isSaved: false,
@@ -104,7 +128,7 @@ export const generateOutreachEmail = async (lead: Lead): Promise<string> => {
 
       **Instruções para o E-mail:**
       1.  **Assunto:** Crie um assunto curto e chamativo.
-      2.  **Saudação:** Dirija-se aos "${lead.keyContacts}".
+      2.  **Saudação:** Dirija-se aos "${lead.keyContacts.join(', ')}".
       3.  **Corpo:**
           - Apresente-se brevemente e sua empresa (um fornecedor de componentes eletrônicos de alta qualidade).
           - Mostre que você fez a lição de casa, mencionando algo específico sobre a "${lead.companyName}" com base nas informações fornecidas.

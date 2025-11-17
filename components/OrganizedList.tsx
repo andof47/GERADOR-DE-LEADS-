@@ -30,14 +30,17 @@ const OrganizedList: React.FC<OrganizedListProps> = ({ leads }) => {
       "Localização",
       "Ramo",
       "Empresa",
-      "Contato Chave",
+      "Contatos Chave",
       "Telefone",
       "Email",
       "Site",
       "Endereço",
       "Status",
       "Resumo",
-      "Racional"
+      "Racional",
+      "Necessidades Potenciais",
+      "Anotações",
+      "Tarefas"
     ];
 
     const csvRows = [headers.join(',')];
@@ -59,18 +62,26 @@ const OrganizedList: React.FC<OrganizedListProps> = ({ leads }) => {
       Object.keys(groupedLeads[location]).sort().forEach(industry => {
         let isFirstOfIndustry = true;
         groupedLeads[location][industry].forEach(lead => {
+          const potentialNeedsString = lead.potentialNeeds ? lead.potentialNeeds.join('; ') : '';
+          const keyContactsString = Array.isArray(lead.keyContacts) ? lead.keyContacts.join('; ') : '';
+          const notesString = lead.notes?.map(n => `[${new Date(n.date).toLocaleString('pt-BR')}] ${n.content}`).join(' | ') ?? '';
+          const tasksString = lead.tasks?.map(t => `${t.isCompleted ? '[Concluída]' : '[Pendente]'} ${t.content} (Venc: ${new Date(t.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })})`).join(' | ') ?? '';
+
           const row = [
               isFirstOfLocation ? escapeCSV(location) : '',
               isFirstOfIndustry ? escapeCSV(industry) : '',
               escapeCSV(lead.companyName),
-              escapeCSV(lead.keyContacts),
+              escapeCSV(keyContactsString),
               escapeCSV(lead.phone),
               escapeCSV(lead.email),
               escapeCSV(lead.website),
               escapeCSV(lead.address),
               escapeCSV(lead.status),
               escapeCSV(lead.summary),
-              escapeCSV(lead.reasonWhy)
+              escapeCSV(lead.reasonWhy),
+              escapeCSV(potentialNeedsString),
+              escapeCSV(notesString),
+              escapeCSV(tasksString)
           ];
           csvRows.push(row.join(','));
           isFirstOfLocation = false;
@@ -97,7 +108,7 @@ const OrganizedList: React.FC<OrganizedListProps> = ({ leads }) => {
   };
 
   if (leads.length === 0) {
-    return <div className="text-center py-16 text-gray-500 dark:text-gray-400">Nenhum lead disponível para listar. Gere novos leads na aba CRM.</div>
+    return <div className="text-center py-16 text-gray-500 dark:text-gray-400">Nenhum lead encontrado para a filtragem atual. Gere novos leads ou ajuste seus filtros.</div>
   }
 
   return (
@@ -126,7 +137,7 @@ const OrganizedList: React.FC<OrganizedListProps> = ({ leads }) => {
                                         <tr>
                                             <th scope="col" className="px-4 py-2">Empresa</th>
                                             <th scope="col" className="px-4 py-2">Site</th>
-                                            <th scope="col" className="px-4 py-2">Contato Chave</th>
+                                            <th scope="col" className="px-4 py-2">Contatos Chave</th>
                                             <th scope="col" className="px-4 py-2">Telefone</th>
                                             <th scope="col" className="px-4 py-2">Email</th>
                                         </tr>
@@ -142,7 +153,7 @@ const OrganizedList: React.FC<OrganizedListProps> = ({ leads }) => {
                                                     </a>
                                                     ) : 'N/A'}
                                                 </td>
-                                                <td className="px-4 py-2">{lead.keyContacts}</td>
+                                                <td className="px-4 py-2">{Array.isArray(lead.keyContacts) ? lead.keyContacts.join(', ') : ''}</td>
                                                 <td className="px-4 py-2">{lead.phone || 'N/A'}</td>
                                                 <td className="px-4 py-2">{lead.email || 'N/A'}</td>
                                             </tr>
