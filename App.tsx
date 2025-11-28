@@ -1,14 +1,16 @@
+
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { generateLeads, generateOutreachEmail } from './services/geminiService';
-import type { Lead, Note, Task } from './types';
+import type { Lead, Note, Task, AppNotification } from './types';
 import { LeadStatus } from './types';
 import Header, { type ActiveView } from './components/Header';
 import Modal from './components/Modal';
-import { SparklesIcon, CalendarDaysIcon, PlusIcon, TrashIcon } from './components/Icons';
+import { SparklesIcon, CalendarDaysIcon, PlusIcon, TrashIcon, PencilIcon } from './components/Icons';
 import KanbanBoard from './components/KanbanBoard';
 import FilterBar from './components/FilterBar';
 import OrganizedList from './components/OrganizedList';
 import Settings from './components/Settings';
+import MapView from './components/MapView';
 
 const App: React.FC = () => {
   const [productCriteria, setProductCriteria] = useState<string>('');
@@ -25,6 +27,7 @@ const App: React.FC = () => {
   
   // States for Notes
   const [newNote, setNewNote] = useState('');
+  const [editingNote, setEditingNote] = useState<{ id: string, content: string } | null>(null);
 
   // States for Tasks
   const [newTaskContent, setNewTaskContent] = useState('');
@@ -37,7 +40,108 @@ const App: React.FC = () => {
 
   const [activeView, setActiveView] = useState<ActiveView>('crm');
 
+  // Notifications State
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
   const LOCAL_STORAGE_KEY = 'ai-lead-generator-crm-leads';
+  const NOTIFICATION_CHECK_KEY = 'last-notification-check';
+
+  // Function to Request Browser Notification Permission
+  const requestNotificationPermission = async () => {
+    if (!('Notification' in window)) {
+        console.log('Este navegador não suporta notificações de desktop.');
+        return;
+    }
+    if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        await Notification.requestPermission();
+    }
+  };
+
+  // Function to send Browser Notification
+  const sendBrowserNotification = (title: string, body: string) => {
+      if (Notification.permission === 'granted') {
+          new Notification(title, {
+              body,
+              icon: '/vite.svg' // Using the vite default icon as placeholder
+          });
+      }
+  };
+
+  // Check for due tasks logic
+  useEffect(() => {
+    const checkDueTasks = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Prevent checking too often (e.g., only once per session or reload) to avoid spam
+        // For this demo, we check on mount.
+        
+        const newNotifications: AppNotification[] = [];
+        let overdueCount = 0;
+        let todayCount = 0;
+
+        leads.forEach(lead => {
+            if (!lead.tasks) return;
+            
+            lead.tasks.forEach(task => {
+                if (task.isCompleted) return;
+
+                const dueDate = new Date(task.dueDate);
+                // Ajuste de fuso para comparação correta da data (apenas dia)
+                const dueDateMidnight = new Date(dueDate.getUTCFullYear(), dueDate.getUTCMonth(), dueDate.getUTCDate());
+
+                if (dueDateMidnight < today) {
+                    overdueCount++;
+                    newNotifications.push({
+                        id: `notif-overdue-${task.id}`,
+                        title: 'Tarefa Atrasada',
+                        message: `"${task.content}" para ${lead.companyName} estava agendada para ${dueDate.toLocaleDateString('pt-BR', {timeZone: 'UTC'})}.`,
+                        date: new Date().toISOString(),
+                        read: false,
+                        type: 'warning',
+                        leadId: lead.id
+                    });
+                } else if (dueDateMidnight.getTime() === today.getTime()) {
+                    todayCount++;
+                    newNotifications.push({
+                        id: `notif-today-${task.id}`,
+                        title: 'Tarefa para Hoje',
+                        message: `"${task.content}" para ${lead.companyName} vence hoje.`,
+                        date: new Date().toISOString(),
+                        read: false,
+                        type: 'info',
+                        leadId: lead.id
+                    });
+                }
+            });
+        });
+
+        // Update internal notifications state
+        if (newNotifications.length > 0) {
+             setNotifications(prev => {
+                // Filter out notifications that already exist to prevent duplicates on re-renders
+                const existingIds = new Set(prev.map(n => n.id));
+                const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
+                return [...uniqueNew, ...prev];
+             });
+
+             // Send Browser Notification Summary
+             if (overdueCount > 0 || todayCount > 0) {
+                 const title = "Atualização de Tarefas";
+                 const msg = `Você tem ${todayCount} tarefas para hoje e ${overdueCount} atrasadas.`;
+                 sendBrowserNotification(title, msg);
+             }
+        }
+    };
+
+    // Check on mount if leads are loaded
+    if (leads.length > 0) {
+        requestNotificationPermission().then(() => {
+            checkDueTasks();
+        });
+    }
+
+  }, [leads.length]); // Depend only on length to avoid loops, assumes deep content doesn't change abruptly for notifs on mount
 
   useEffect(() => {
     try {
@@ -99,19 +203,12 @@ const App: React.FC = () => {
       
       const newLeads = await generateLeads(productCriteria, locationCriteria, companyName, userCoords);
       setLeads(prevLeads => {
-        // 1. Manter APENAS os leads que já foram favoritados. Os outros da busca anterior são descartados.
         const favoritedLeads = prevLeads.filter(l => l.isSaved);
-        
-        // 2. Criar um conjunto de nomes de empresas já favoritadas para evitar duplicatas.
         const favoritedCompanyNames = new Set(favoritedLeads.map(l => l.companyName));
-
-        // 3. Filtrar os novos leads para garantir que não estamos adicionando duplicatas dos já favoritados.
         const uniqueNewLeads = newLeads.filter(l => !favoritedCompanyNames.has(l.companyName));
-
-        // 4. A nova lista de leads será os favoritados + os novos e únicos.
         return [...favoritedLeads, ...uniqueNewLeads];
       });
-      setActiveView('crm'); // Muda para a aba CRM para ver os novos leads
+      setActiveView('crm'); 
     } catch (err: any) {
       setError(err.message || 'Ocorreu um erro desconhecido.');
     } finally {
@@ -121,6 +218,7 @@ const App: React.FC = () => {
 
   const handleSelectLead = (lead: Lead) => {
     setSelectedLead(lead);
+    setEditingNote(null); 
     setIsDetailModalOpen(true);
   };
   
@@ -172,6 +270,48 @@ const App: React.FC = () => {
     setNewNote('');
   };
 
+  const handleStartEditingNote = (note: Note) => {
+    setEditingNote({ id: note.id, content: note.content });
+  };
+
+  const handleCancelEditingNote = () => {
+    setEditingNote(null);
+  };
+
+  const handleUpdateNote = (leadId: string) => {
+    if (!editingNote) return;
+
+    const updatedLeads = leads.map(lead => {
+        if (lead.id === leadId) {
+            const updatedNotes = (lead.notes || []).map(note =>
+                note.id === editingNote.id 
+                  ? { ...note, content: editingNote.content, date: new Date().toISOString() } 
+                  : note
+            );
+            return { ...lead, notes: updatedNotes };
+        }
+        return lead;
+    });
+    setLeads(updatedLeads);
+    setSelectedLead(updatedLeads.find(l => l.id === leadId) || null);
+    setEditingNote(null);
+  };
+
+  const handleDeleteNote = (leadId: string, noteId: string) => {
+    if (window.confirm("Tem certeza que deseja excluir esta anotação?")) {
+        const updatedLeads = leads.map(lead => {
+            if (lead.id === leadId) {
+                const updatedNotes = (lead.notes || []).filter(note => note.id !== noteId);
+                return { ...lead, notes: updatedNotes };
+            }
+            return lead;
+        });
+        setLeads(updatedLeads);
+        setSelectedLead(updatedLeads.find(l => l.id === leadId) || null);
+    }
+  };
+
+
   const handleAddTask = (leadId: string) => {
     if (!newTaskContent.trim() || !newTaskDueDate) return;
     const task: Task = {
@@ -217,10 +357,18 @@ const App: React.FC = () => {
     setSelectedLead(updatedLeads.find(l => l.id === leadId) || null);
   };
 
+  // Notifications Handlers
+  const handleMarkNotificationAsRead = (id: string) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  const handleClearNotifications = () => {
+    setNotifications([]);
+  };
 
   const filteredLeads = useMemo(() => {
     return leads.filter(lead => {
-      if (lead.isSaved) return false; // Não mostrar favoritos na visão principal do CRM
+      if (lead.isSaved) return false; 
       const matchesSearch = lead.companyName.toLowerCase().includes(filters.searchText.toLowerCase());
       const matchesStatus = filters.status === 'all' || lead.status === filters.status;
       return matchesSearch && matchesStatus;
@@ -236,6 +384,11 @@ const App: React.FC = () => {
     });
   }, [leads, filters]);
 
+  const allDisplayedLeads = useMemo(() => {
+       return [...filteredLeads, ...savedLeads];
+  }, [filteredLeads, savedLeads]);
+
+
   const copyEmailToClipboard = () => {
     navigator.clipboard.writeText(generatedEmail);
   };
@@ -244,12 +397,24 @@ const App: React.FC = () => {
     setLeads([]);
   }
 
+  const handleClearUnsavedLeads = () => {
+    if (window.confirm("Tem certeza que deseja limpar todos os leads não favoritados da visualização? Esta ação não pode ser desfeita.")) {
+      setLeads(prevLeads => prevLeads.filter(lead => lead.isSaved));
+    }
+  };
+
   const renderActiveView = () => {
     switch (activeView) {
       case 'crm':
         return (
           <>
-            <FilterBar filters={filters} setFilters={setFilters} allLeads={leads.filter(l => !l.isSaved)} />
+            <FilterBar 
+              filters={filters} 
+              setFilters={setFilters} 
+              allLeads={leads.filter(l => !l.isSaved)}
+              onClearResults={handleClearUnsavedLeads}
+              clearButtonLabel="Limpar Resultados"
+            />
             <KanbanBoard 
               leads={filteredLeads} 
               onStatusChange={handleStatusChange} 
@@ -259,6 +424,13 @@ const App: React.FC = () => {
               emptyMessage="Nenhum lead encontrado. Gere novos leads ou ajuste seus filtros."
             />
           </>
+        );
+      case 'map':
+        return (
+            <>
+                <FilterBar filters={filters} setFilters={setFilters} allLeads={leads} />
+                <MapView leads={allDisplayedLeads} onSelectLead={handleSelectLead} />
+            </>
         );
       case 'favorites':
         return (
@@ -295,7 +467,13 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans flex flex-col">
-      <Header activeView={activeView} setActiveView={setActiveView} />
+      <Header 
+        activeView={activeView} 
+        setActiveView={setActiveView} 
+        notifications={notifications}
+        onMarkAsRead={handleMarkNotificationAsRead}
+        onClearNotifications={handleClearNotifications}
+      />
       <main className="container mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md max-w-4xl mx-auto w-full">
           <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Gerar Novos Leads</h2>
@@ -442,9 +620,41 @@ const App: React.FC = () => {
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Anotações / Histórico</h4>
                 <div className="space-y-2 max-h-40 overflow-y-auto mb-4 pr-2">
                   {selectedLead.notes?.length ? selectedLead.notes.map(note => (
-                    <div key={note.id} className="bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm">
-                      <p className="whitespace-pre-wrap">{note.content}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 text-right">{new Date(note.date).toLocaleString('pt-BR')}</p>
+                    <div key={note.id}>
+                      {editingNote?.id === note.id ? (
+                        <div className="bg-gray-200 dark:bg-gray-600 p-2 rounded-md">
+                          <textarea
+                            value={editingNote.content}
+                            onChange={(e) => setEditingNote({ ...editingNote, content: e.target.value })}
+                            className="w-full p-2 border border-gray-300 dark:border-gray-500 rounded-md bg-white dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 text-sm"
+                            rows={3}
+                            autoFocus
+                          />
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button onClick={handleCancelEditingNote} className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white px-3 py-1 rounded-md">
+                              Cancelar
+                            </button>
+                            <button onClick={() => handleUpdateNote(selectedLead.id)} className="text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 px-3 py-1 rounded-md">
+                              Salvar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-md text-sm group relative">
+                          <p className="whitespace-pre-wrap pr-16">{note.content}</p>
+                          <div className="flex justify-between items-center mt-1">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{new Date(note.date).toLocaleString('pt-BR')}</p>
+                            <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button onClick={() => handleStartEditingNote(note)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600" title="Editar anotação">
+                                <PencilIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                              </button>
+                              <button onClick={() => handleDeleteNote(selectedLead.id, note.id)} className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600" title="Excluir anotação">
+                                <TrashIcon className="w-4 h-4 text-gray-500 dark:text-gray-400 hover:text-red-500" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )) : <p className="text-sm text-gray-500">Nenhuma anotação adicionada.</p>}
                 </div>
@@ -455,8 +665,9 @@ const App: React.FC = () => {
                     placeholder="Adicionar nova anotação..."
                     className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-indigo-500 text-sm"
                     rows={2}
+                    disabled={!!editingNote}
                   />
-                  <button onClick={() => handleAddNote(selectedLead.id)} className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 self-end">Salvar</button>
+                  <button onClick={() => handleAddNote(selectedLead.id)} className="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 self-end" disabled={!!editingNote}>Salvar</button>
                 </div>
               </div>
             </div>

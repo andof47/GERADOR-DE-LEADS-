@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export const SparklesIcon = ({ className }: { className?: string }) => (
@@ -51,7 +52,7 @@ export const ListBulletIcon = ({ className }: { className?: string }) => (
 
 export const Cog6ToothIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.26.716.53.962l.958.836c.446.39.492 1.05.088 1.49l-1.096 1.95c-.403.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Zm6.806 12.094c.09.542.56.94 1.11.94h2.593c.55 0 1.02-.398 1.11-.94l.213-1.281c.063-.374.26-.716.53-.962l.958-.836c.446.39.492 1.05.088-1.49l-1.096-1.95c-.403-.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Zm-15.62 0c.09.542.56.94 1.11.94h2.593c.55 0 1.02-.398 1.11-.94l.213-1.281c.063-.374.26-.716.53-.962l.958-.836c.446.39.492 1.05.088-1.49l-1.096-1.95c-.403-.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.26.716.53.962l.958.836c.446.39.492 1.05.088 1.49l-1.096 1.95c-.403.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Zm6.806 12.094c.09.542.56.94 1.11.94h2.593c.55 0 1.02-.398 1.11-.94l.213 1.281c.063-.374.26-.716.53-.962l.958-.836c.446.39.492 1.05.088-1.49l-1.096-1.95c-.403-.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Zm-15.62 0c.09.542.56.94 1.11.94h2.593c.55 0 1.02-.398 1.11-.94l.213 1.281c.063-.374.26-.716.53-.962l.958-.836c.446.39.492 1.05.088-1.49l-1.096-1.95c-.403-.44-.98-.7-1.49.525l-1.28-.212a2.25 2.25 0 0 0-1.664 0l-1.28.212c-.51.176-1.087-.086-1.49-.525l-1.096-1.95c-.403-.44-.357-1.1.088-1.49l.958-.836c.27-.246.467-.588.53-.962l.213-1.281Z" />
         <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
     </svg>
 );
@@ -90,4 +91,40 @@ export const XCircleIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
         <path strokeLinecap="round" strokeLinejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
+);
+
+export const PencilIcon = ({ className }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+    </svg>
+);
+
+export const MapIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.875 1.875 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z" />
+  </svg>
+);
+
+export const BellAlertIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+  </svg>
+);
+
+export const XMarkIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+  </svg>
+);
+
+export const PhoneIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106a4.475 4.475 0 0 0-3.933 1.038l-.15.15c-.165.165-.42.165-.585 0l-4.297-4.297a.412.412 0 0 1 0-.585l.15-.15a4.474 4.474 0 0 0 1.038-3.933L6.309 2.064A1.42 1.42 0 0 0 5.18 1.5H3.75A2.25 2.25 0 0 0 1.5 3.75v3Z" />
+  </svg>
+);
+
+export const GlobeAltIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className || 'w-6 h-6'}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21.22 12c0 4.97-4.03 9-9 9a8.96 8.96 0 0 1-2.34-.31M9 12h.008v.008H9V12Zm11.25 0h.008v.008h-.008V12Z" />
+  </svg>
 );

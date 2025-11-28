@@ -1,3 +1,4 @@
+
 export enum LeadStatus {
   New = 'Novo',
   Contacted = 'Contactado',
@@ -34,6 +35,18 @@ export interface Lead {
   phone?: string;
   email?: string;
   website?: string;
+  latitude?: number;
+  longitude?: number;
   notes?: Note[];
   tasks?: Task[];
+}
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  read: boolean;
+  type: 'warning' | 'info' | 'success';
+  leadId?: string;
 }

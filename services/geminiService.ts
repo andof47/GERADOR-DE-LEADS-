@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import type { Lead } from '../types';
 import { LeadStatus } from '../types';
@@ -47,6 +48,8 @@ Para cada empresa, forneça os seguintes campos no objeto JSON:
 - industry: Setor de atuação da empresa.
 - location: Cidade e Estado da empresa.
 - address: Endereço físico completo, se disponível.
+- latitude: Latitude aproximada da empresa (tipo number).
+- longitude: Longitude aproximada da empresa (tipo number).
 - phone: Número de telefone principal, se disponível.
 - email: Endereço de e-mail geral, se disponível.
 - website: URL do site oficial, se disponível.
@@ -59,7 +62,7 @@ Para cada empresa, forneça os seguintes campos no objeto JSON:
       model: 'gemini-2.5-pro',
       contents: prompt,
       config: {
-        systemInstruction: `Você é um especialista em geração de leads B2B para a indústria de componentes eletrônicos no Brasil. Sua tarefa é usar as ferramentas de busca fornecidas para identificar e formatar informações detalhadas sobre empresas que seriam excelentes clientes. Forneça respostas em português do Brasil, estritamente no formato JSON solicitado.`,
+        systemInstruction: `Você é um especialista em geração de leads B2B para a indústria de componentes eletrônicos no Brasil. Sua tarefa é usar as ferramentas de busca fornecidas para identificar e formatar informações detalhadas sobre empresas que seriam excelentes clientes. Forneça respostas em português do Brasil, estritamente no formato JSON solicitado. Ao fornecer latitude e longitude, tente ser o mais preciso possível com base no endereço da empresa.`,
         tools: tools,
         ...(Object.keys(toolConfig).length > 0 && { toolConfig: toolConfig }),
       }

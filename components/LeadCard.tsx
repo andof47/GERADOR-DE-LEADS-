@@ -1,7 +1,8 @@
+
 import React from 'react';
 import type { Lead } from '../types';
 import { LeadStatus } from '../types';
-import { BuildingOfficeIcon, MapPinIcon, StarIcon } from './Icons';
+import { BuildingOfficeIcon, MapPinIcon, StarIcon, PhoneIcon, GlobeAltIcon } from './Icons';
 
 interface LeadCardProps {
   lead: Lead;
@@ -30,8 +31,9 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onSelect, onGenerateEmail, on
       className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-shadow duration-300 hover:shadow-lg flex flex-col cursor-grab active:cursor-grabbing border-l-4 ${colorTheme.border} mb-4`}
     >
       <div className="p-4 flex-grow">
-        <div className="flex justify-between items-start gap-2">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 pr-2 flex-grow">{lead.companyName}</h3>
+        {/* Header */}
+        <div className="flex justify-between items-start gap-2 mb-3">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight flex-grow">{lead.companyName}</h3>
             <div className="flex items-center flex-shrink-0 gap-2">
                 <button
                     onClick={(e) => { e.stopPropagation(); onToggleSave(lead.id); }}
@@ -44,30 +46,63 @@ const LeadCard: React.FC<LeadCardProps> = ({ lead, onSelect, onGenerateEmail, on
                 <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${colorTheme.bg} ${colorTheme.text}`}>{lead.status}</span>
             </div>
         </div>
-        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-2">
-            <BuildingOfficeIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="truncate">{lead.industry}</span>
+
+        {/* Two-Column Content */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+            {/* Col 1: Contact Info */}
+            <div className="flex flex-col gap-2 text-gray-500 dark:text-gray-400 border-r border-gray-100 dark:border-gray-700 pr-2">
+                <div className="flex items-start" title="Setor">
+                    <BuildingOfficeIcon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+                    <span className="truncate leading-tight">{lead.industry}</span>
+                </div>
+                <div className="flex items-start" title="Localização">
+                    <MapPinIcon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+                    <span className="truncate leading-tight">{lead.location}</span>
+                </div>
+                {lead.phone && (
+                  <div className="flex items-start" title="Telefone">
+                      <PhoneIcon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+                      <span className="truncate leading-tight">{lead.phone}</span>
+                  </div>
+                )}
+                {lead.website && (
+                   <div className="flex items-start" title="Site">
+                      <GlobeAltIcon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-gray-400" />
+                      <a 
+                        href={lead.website.startsWith('http') ? lead.website : `https://${lead.website}`} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="truncate text-indigo-500 hover:underline leading-tight"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Site
+                      </a>
+                  </div>
+                )}
+            </div>
+
+            {/* Col 2: Analysis/Details */}
+            <div className="flex flex-col gap-1 pl-1">
+                <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wide">Racional da IA</span>
+                <p className="text-xs text-gray-600 dark:text-gray-300 leading-snug line-clamp-4 italic">
+                  "{lead.reasonWhy}"
+                </p>
+            </div>
         </div>
-        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
-            <MapPinIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-            <span className="truncate">{lead.location}</span>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 mt-3 text-sm line-clamp-2">
-          <strong>Racional:</strong> {lead.reasonWhy}
-        </p>
+
       </div>
       <div className="bg-gray-50 dark:bg-gray-700/50 px-4 py-2 flex justify-end gap-3">
         <button
           onClick={(e) => { e.stopPropagation(); onGenerateEmail(lead); }}
-          className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+          className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
         >
           Gerar E-mail
         </button>
         <button
           onClick={() => onSelect(lead)}
-          className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
+          className="text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
         >
-          Detalhes
+          Ver Detalhes
         </button>
       </div>
     </div>

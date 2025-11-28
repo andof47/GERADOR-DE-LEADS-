@@ -1,6 +1,8 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { TrashIcon, DocumentArrowDownIcon, DocumentArrowUpIcon, CheckCircleIcon, XCircleIcon } from './Icons';
 import type { Lead } from '../types';
+import { LeadStatus } from '../types';
+
 
 interface SettingsProps {
   onClearAllLeads: () => void;
@@ -17,24 +19,6 @@ const Settings: React.FC<SettingsProps> = ({ onClearAllLeads, leads, onRestoreLe
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [statusType, setStatusType] = useState<StatusType>('info');
 
-  const simulateProgress = (onComplete: () => void) => {
-    setProgress(0);
-    setStatusType('info');
-    setStatusMessage('Processando...');
-    setIsProcessing(true);
-
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          onComplete();
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 100);
-  };
-
   const showFinalStatus = (message: string, type: StatusType) => {
     setProgress(100);
     setStatusMessage(message);
@@ -43,18 +27,25 @@ const Settings: React.FC<SettingsProps> = ({ onClearAllLeads, leads, onRestoreLe
         setIsProcessing(false);
         setStatusMessage('');
         setProgress(0);
-    }, 3000);
+    }, 4000);
   }
 
   const handleExportBackup = () => {
+    setIsProcessing(true);
+    setProgress(0);
+    setStatusMessage('Iniciando exportação...');
+    setStatusType('info');
+
     if (leads.length === 0) {
-      setIsProcessing(true); // Ativa a UI de status
       showFinalStatus("Não há leads para exportar.", 'error');
       return;
     }
     
-    simulateProgress(() => {
+    // Simulate a short delay for UX
+    setTimeout(() => {
         try {
+          setProgress(50);
+          setStatusMessage('Gerando arquivo de backup...');
           const jsonString = JSON.stringify(leads, null, 2);
           const blob = new Blob([jsonString], { type: 'application/json' });
           const url = URL.createObjectURL(blob);
@@ -66,12 +57,13 @@ const Settings: React.FC<SettingsProps> = ({ onClearAllLeads, leads, onRestoreLe
           link.click();
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
+          setProgress(100);
           showFinalStatus("Backup exportado com sucesso!", 'success');
         } catch (error) {
           console.error("Erro ao exportar backup:", error);
           showFinalStatus("Falha ao exportar backup.", 'error');
         }
-    });
+    }, 500);
   };
 
   const handleRestoreClick = () => {
@@ -89,50 +81,87 @@ const Settings: React.FC<SettingsProps> = ({ onClearAllLeads, leads, onRestoreLe
     }
 
     const reader = new FileReader();
+
+    setIsProcessing(true);
+    setProgress(0);
+    setStatusMessage('Lendo arquivo...');
+    setStatusType('info');
+
     reader.onload = (e) => {
-        simulateProgress(() => {
-            try {
-                const text = e.target?.result;
-                if (typeof text !== 'string') throw new Error("Falha ao ler o arquivo.");
-                const restoredLeads = JSON.parse(text);
-                
-                if (Array.isArray(restoredLeads)) {
-                    const sanitizedLeads = restoredLeads.map(lead => ({
-                        ...lead,
-                        keyContacts: Array.isArray(lead.keyContacts) ? lead.keyContacts : (typeof lead.keyContacts === 'string' && lead.keyContacts.length > 0 ? [lead.keyContacts] : []),
-                        notes: Array.isArray(lead.notes) ? lead.notes : [],
-                        tasks: Array.isArray(lead.tasks) ? lead.tasks : []
-                    }));
-                    onRestoreLeads(sanitizedLeads);
-                    showFinalStatus("Backup restaurado com sucesso!", 'success');
-                } else {
-                    throw new Error("O arquivo de backup não contém um formato de leads válido.");
-                }
-            } catch (error) {
-                console.error("Erro ao restaurar backup:", error);
-                showFinalStatus(`Falha ao restaurar: ${(error as Error).message}`, 'error');
-            } finally {
-                if (event.target) event.target.value = '';
+        try {
+            setProgress(30);
+            setStatusMessage('Validando dados...');
+
+            const text = e.target?.result;
+            if (typeof text !== 'string') {
+              throw new Error("Falha ao ler o conteúdo do arquivo.");
             }
-        });
+
+            const restoredLeads = JSON.parse(text);
+            
+            if (!Array.isArray(restoredLeads)) {
+                throw new Error("O arquivo de backup não é uma lista de leads válida.");
+            }
+            
+            setProgress(60);
+            setStatusMessage('Sanitizando e importando leads...');
+            
+            // Comprehensive sanitization to ensure data integrity
+            const sanitizedLeads: Lead[] = restoredLeads.map((lead: any) => ({
+                id: lead.id || `lead-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                companyName: lead.companyName || 'Nome da Empresa Desconhecido',
+                industry: lead.industry || 'Setor Desconhecido',
+                location: lead.location || 'Localização Desconhecida',
+                summary: lead.summary || '',
+                reasonWhy: lead.reasonWhy || '',
+                potentialNeeds: Array.isArray(lead.potentialNeeds) ? lead.potentialNeeds : [],
+                keyContacts: Array.isArray(lead.keyContacts) ? lead.keyContacts : (typeof lead.keyContacts === 'string' && lead.keyContacts.length > 0 ? [lead.keyContacts] : []),
+                status: Object.values(LeadStatus).includes(lead.status) ? lead.status : LeadStatus.New,
+                isSaved: typeof lead.isSaved === 'boolean' ? lead.isSaved : false,
+                address: lead.address || undefined,
+                phone: lead.phone || undefined,
+                email: lead.email || undefined,
+                website: lead.website || undefined,
+                notes: Array.isArray(lead.notes) ? lead.notes : [],
+                tasks: Array.isArray(lead.tasks) ? lead.tasks : [],
+            }));
+
+            onRestoreLeads(sanitizedLeads);
+
+            setProgress(100);
+            showFinalStatus(`Sucesso! ${sanitizedLeads.length} leads restaurados.`, 'success');
+
+        } catch (error) {
+            console.error("Erro ao restaurar backup:", error);
+            showFinalStatus(`Falha ao restaurar: ${(error as Error).message}`, 'error');
+        } finally {
+            // Reset the input so the same file can be selected again
+            if (event.target) event.target.value = '';
+        }
     };
+
     reader.onerror = () => {
         showFinalStatus("Ocorreu um erro ao ler o arquivo.", 'error');
         if (event.target) event.target.value = '';
     };
+
     reader.readAsText(file);
   };
 
   const handleClearAll = () => {
     if(window.confirm("Você tem certeza que deseja apagar TODOS os leads? Esta ação não pode ser desfeita sem um backup.")){
-        simulateProgress(() => {
-            try {
-                onClearAllLeads();
-                showFinalStatus("Todos os dados foram limpos com sucesso.", 'success');
-            } catch (error) {
-                showFinalStatus("Ocorreu um erro ao limpar os dados.", 'error');
-            }
-        });
+        setIsProcessing(true);
+        setProgress(0);
+        setStatusMessage('Limpando dados...');
+        setStatusType('info');
+        setTimeout(() => {
+          try {
+              onClearAllLeads();
+              showFinalStatus("Todos os dados foram limpos com sucesso.", 'success');
+          } catch (error) {
+              showFinalStatus("Ocorreu um erro ao limpar os dados.", 'error');
+          }
+        }, 500);
     }
   }
   
